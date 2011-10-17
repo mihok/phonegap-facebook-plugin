@@ -5,7 +5,6 @@ package com.phonegap.plugin.facebook;
 
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.content.Context;
 import android.content.Intent;
@@ -71,7 +70,7 @@ public class FacebookGapPlugin extends Plugin {
         			Log.d("FacebookGapPlugin", "Already authorized, skipping...");
         			result = new PluginResult(Status.OK);
         		} else {
-        			String[] permissions = new String[data.length() - 1];
+        			final String[] permissions = new String[data.length() - 1];
         			try {
         				for(int i = 0; i < (data.length() - 1); i++) {
         					permissions[i] = data.getString(i + 1);
@@ -82,29 +81,39 @@ public class FacebookGapPlugin extends Plugin {
         			}
         			
         			ctx.setActivityResultCallback(this);
-        			facebook.authorize(ctx, permissions, 1234567890, new DialogListener() {
-    				   @Override
-    				   public void onComplete(Bundle values) {
-    					   Log.d("FacebookGapPlugin", "Facebook authorized [" + facebook.getAccessToken() + "]");
-    					   SharedPreferences.Editor editor = preferences.edit();
-    					   editor.putString("access_token", facebook.getAccessToken());
-    					   editor.putLong("access_expires", facebook.getAccessExpires());
-    					   editor.commit();
-    				   }
-    				
-    				   @Override
-    				   public void onFacebookError(FacebookError error) {
-    					   Log.d("FacebookGapPlugin", "Facebook Error: " + error.getMessage());
-    				   }
-    				
-    				   @Override
-    				   public void onError(DialogError e) {
-    					   Log.d("FacebookGapPlugin", "Facebook Error: " + e.getMessage());
-    				   }
-    				
-    				   @Override
-    				   public void onCancel() {}
-    				});
+        			final FacebookGapPlugin me = this;
+        			
+        			new Thread(new Runnable() {
+        			    public void run() {
+        			    	me.webView.post(new Runnable(){
+    			    			public void run() {
+    			    				me.facebook.authorize(me.ctx, permissions, 1234567890, new DialogListener() {
+    			    					@Override
+    			    					public void onComplete(Bundle values) {
+										   Log.d("FacebookGapPlugin", "Facebook authorized [" + facebook.getAccessToken() + "]");
+										   SharedPreferences.Editor editor = preferences.edit();
+										   editor.putString("access_token", facebook.getAccessToken());
+										   editor.putLong("access_expires", facebook.getAccessExpires());
+										   editor.commit();
+    			    					}
+									
+    			    					@Override
+    			    					public void onFacebookError(FacebookError error) {
+										   Log.d("FacebookGapPlugin", "Facebook Error: " + error.getMessage());
+    			    					}
+									
+    			    					@Override
+    			    					public void onError(DialogError e) {
+										   Log.d("FacebookGapPlugin", "Facebook Error: " + e.getMessage());
+    			    					}
+									
+    			    					@Override
+    			    					public void onCancel() {}
+    			    				});
+    			    			}
+        			    	});
+        			    }
+        			}).start();
         		}
         	} else {
         		
